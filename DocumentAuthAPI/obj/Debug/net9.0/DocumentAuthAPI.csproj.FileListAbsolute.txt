@@ -161,3 +161,4 @@
 /Users/parasgoel/projects/Document_Management/DocumentAuthAPI/obj/Debug/net9.0/DocumentAuthAPI.pdb
 /Users/parasgoel/projects/Document_Management/DocumentAuthAPI/obj/Debug/net9.0/DocumentAuthAPI.genruntimeconfig.cache
 /Users/parasgoel/projects/Document_Management/DocumentAuthAPI/obj/Debug/net9.0/ref/DocumentAuthAPI.dll
+/Users/parasgoel/projects/Document_Management/DocumentAuthAPI/obj/Debug/net9.0/DocumentAuthAPI.sourcelink.json
