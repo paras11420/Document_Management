@@ -91,7 +91,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
                 maxRetryDelay: TimeSpan.FromSeconds(10),
                 errorCodesToAdd: null);
         })
-        // Suppress pending model changes warning so startup won’t fail
+        // Suppress pending model changes warning so startup won't fail
         .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
     else if (!string.IsNullOrEmpty(connectionString) && connectionString.Contains("Server="))
@@ -133,21 +133,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// CORS Policy
+// CORS Policy - Updated to allow your frontend origins
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-    options.AddPolicy("ProductionCors", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
             "http://localhost:3000",
             "http://localhost:5173",
-            "https://your-frontend-app.vercel.app"
+            "http://localhost:5174",
+            "https://your-frontend-app.vercel.app"  // Replace with your actual Vercel URL when deployed
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -157,16 +152,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Choose CORS based on environment
+// Use CORS middleware before authentication
+app.UseCors("AllowFrontend");
+
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseCors("AllowAll");
 }
 else
 {
-    app.UseCors("ProductionCors");
     app.UseHsts();
 }
 
