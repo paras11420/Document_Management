@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DocumentAuthAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d320be63bba9ced783b60f5d26acf855d62d22a0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+efe9ee10209985a8299a7b0f9e8dc39af11b923a")]
 [assembly: System.Reflection.AssemblyProductAttribute("DocumentAuthAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DocumentAuthAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

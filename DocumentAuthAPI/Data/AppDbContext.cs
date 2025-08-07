@@ -2,7 +2,6 @@ using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using DocumentAuthAPI.Models;
 
-
 namespace Backend.Data
 {
     public class AppDbContext : DbContext
@@ -14,16 +13,26 @@ namespace Backend.Data
         public DbSet<Department> Departments { get; set; }
         public DbSet<User> Users { get; set; }
 
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-                modelBuilder.Entity<Department>()
-                .HasIndex(d => d.Name)
-                .IsUnique(); // 🚨 This enforces uniqueness at DB level
+            // Force all string properties to use PostgreSQL 'text' type
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (property.ClrType == typeof(string))
+                    {
+                        property.SetColumnType("text");
+                    }
+                }
+            }
 
-            // Define the one-to-many relationship between Document and Department
+            modelBuilder.Entity<Department>()
+                .HasIndex(d => d.Name)
+                .IsUnique();
+
             modelBuilder.Entity<Document>()
                 .HasOne(d => d.Department)
                 .WithMany(dept => dept.Documents)

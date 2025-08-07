@@ -162,3 +162,10 @@
 /Users/parasgoel/projects/Document_Management/DocumentAuthAPI/obj/Debug/net9.0/DocumentAuthAPI.genruntimeconfig.cache
 /Users/parasgoel/projects/Document_Management/DocumentAuthAPI/obj/Debug/net9.0/ref/DocumentAuthAPI.dll
 /Users/parasgoel/projects/Document_Management/DocumentAuthAPI/obj/Debug/net9.0/DocumentAuthAPI.sourcelink.json
+/Users/parasgoel/projects/Document_Management/DocumentAuthAPI/bin/Debug/net9.0/ appsettings.Production.json
+/Users/parasgoel/projects/Document_Management/DocumentAuthAPI/bin/Debug/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/Users/parasgoel/projects/Document_Management/DocumentAuthAPI/bin/Debug/net9.0/Npgsql.dll
+/Users/parasgoel/projects/Document_Management/DocumentAuthAPI/bin/Debug/net9.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll
+/Users/parasgoel/projects/Document_Management/DocumentAuthAPI/bin/Debug/net9.0/Swashbuckle.AspNetCore.Swagger.dll
+/Users/parasgoel/projects/Document_Management/DocumentAuthAPI/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerGen.dll
+/Users/parasgoel/projects/Document_Management/DocumentAuthAPI/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerUI.dll
