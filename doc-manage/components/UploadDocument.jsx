@@ -16,7 +16,9 @@ function UploadDocument() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await axios.get("http://localhost:8080/api/department");
+        const res = await axios.get(
+          "https://document-auth-api.onrender.com/api/department"
+        );
         setDepartments(res.data);
       } catch (err) {
         console.error("Error fetching departments:", err);
@@ -41,7 +43,7 @@ function UploadDocument() {
     try {
       setIsLoading(true);
       const res = await axios.post(
-        "http://localhost:8080/api/document/upload",
+        "https://document-auth-api.onrender.com/api/document/upload",
         formData
       );
       setMessage(`✅ ${res.data.message}`);

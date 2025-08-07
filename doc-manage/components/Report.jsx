@@ -15,7 +15,9 @@ function Report() {
   useEffect(() => {
     // Department Summary
     axios
-      .get("http://localhost:8080/api/reports/department-summary")
+      .get(
+        "https://document-auth-api.onrender.com/api/reports/department-summary"
+      )
       .then((res) => setSummary(Array.isArray(res.data) ? res.data : []))
       .catch((err) => {
         console.error("Failed to fetch summary", err);
@@ -24,7 +26,7 @@ function Report() {
 
     // Departments List
     axios
-      .get("http://localhost:8080/api/document/departments")
+      .get("https://document-auth-api.onrender.com/api/document/departments")
       .then((res) => setDepartments(Array.isArray(res.data) ? res.data : []))
       .catch((err) => {
         console.error("Failed to fetch departments", err);
@@ -39,7 +41,10 @@ function Report() {
     });
 
     axios
-      .get("http://localhost:8080/api/reports/document-details", { params })
+      .get(
+        "https://document-auth-api.onrender.com/api/reports/document-details",
+        { params }
+      )
       .then((res) => setDetails(Array.isArray(res.data) ? res.data : []))
       .catch((err) => {
         console.error("Failed to fetch details", err);

@@ -10,6 +10,8 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
     if (!username || !password) {
       setError("All fields are required");
@@ -17,7 +19,7 @@ function Login() {
     }
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

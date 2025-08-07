@@ -15,7 +15,7 @@ function Department() {
 
   const navigate = useNavigate();
 
-  const API_BASE = "http://localhost:8080/api/department";
+  const API_BASE = "https://document-auth-api.onrender.com/api/department";
 
   useEffect(() => {
     fetchDepartments();

@@ -11,7 +11,7 @@ function DocumentList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const API_BASE = "http://localhost:8080/api";
+  const API_BASE = "https://document-auth-api.onrender.com/api";
 
   useEffect(() => {
     const fetchData = async () => {
