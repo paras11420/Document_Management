@@ -85,8 +85,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         Console.WriteLine("[INFO] Using PostgreSQL database");
         try
         {
-            options.UseNpgsql(connectionString);
-            Console.WriteLine("[DEBUG] PostgreSQL options configured successfully");
+            // Add connection timeout and retry configuration
+            options.UseNpgsql(connectionString, npgsqlOptions =>
+            {
+                npgsqlOptions.CommandTimeout(30);
+                npgsqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorCodesToAdd: null);
+            });
+            Console.WriteLine("[DEBUG] PostgreSQL options configured successfully with timeout and retry");
         }
         catch (Exception ex)
         {
@@ -202,7 +210,7 @@ app.MapGet("/", () => Results.Ok(new
 var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
-// Enhanced database migration with detailed error logging
+// Enhanced database migration with comprehensive network diagnostic logging
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -210,23 +218,129 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("[INFO] Starting database connection test and migration...");
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
-        // Test the connection first with detailed logging
-        Console.WriteLine("[DEBUG] Testing database connection...");
+        // Parse connection string for diagnostic info
+        try
+        {
+            var uri = new Uri(connectionString.Replace("postgresql://", "http://"));
+            Console.WriteLine($"[DEBUG] Parsed connection - Host: {uri.Host}, Port: {uri.Port}");
+            Console.WriteLine($"[DEBUG] Database name from path: {uri.AbsolutePath.TrimStart('/')}");
+            Console.WriteLine($"[DEBUG] Query parameters: {uri.Query}");
+        }
+        catch (Exception parseEx)
+        {
+            Console.WriteLine($"[DEBUG] Could not parse connection string for diagnostics: {parseEx.Message}");
+        }
+        
+        // Test connection with timeout and detailed error reporting
+        Console.WriteLine("[DEBUG] Testing database connection with 30-second timeout...");
         Console.WriteLine($"[DEBUG] Using connection string length: {connectionString?.Length ?? 0}");
         
-        var canConnect = await context.Database.CanConnectAsync();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        
+        var canConnect = await context.Database.CanConnectAsync(cts.Token);
         Console.WriteLine($"[DEBUG] Database connection test result: {canConnect}");
         
         if (canConnect)
         {
-            Console.WriteLine("[DEBUG] Connection successful, applying migrations...");
-            context.Database.Migrate();
-            Console.WriteLine("[INFO] ✅ Database migration completed successfully!");
+            Console.WriteLine("[DEBUG] ✅ Connection successful, applying migrations...");
+            try
+            {
+                var pendingMigrations = await context.Database.GetPendingMigrationsAsync(cts.Token);
+                Console.WriteLine($"[DEBUG] Pending migrations count: {pendingMigrations.Count()}");
+                
+                if (pendingMigrations.Any())
+                {
+                    Console.WriteLine("[DEBUG] Applying pending migrations:");
+                    foreach (var migration in pendingMigrations)
+                    {
+                        Console.WriteLine($"[DEBUG] - {migration}");
+                    }
+                }
+                
+                context.Database.Migrate();
+                Console.WriteLine("[INFO] ✅ Database migration completed successfully!");
+                
+                // Test a simple query after migration
+                var tableCount = await context.Database.ExecuteSqlRawAsync("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'", cts.Token);
+                Console.WriteLine($"[DEBUG] Database contains {tableCount} public tables");
+            }
+            catch (Exception migrationEx)
+            {
+                Console.WriteLine($"[ERROR] ❌ Migration failed: {migrationEx.Message}");
+                Console.WriteLine($"[ERROR] Migration exception type: {migrationEx.GetType().Name}");
+                if (migrationEx.InnerException != null)
+                {
+                    Console.WriteLine($"[ERROR] Migration inner exception: {migrationEx.InnerException.Message}");
+                }
+            }
         }
         else
         {
             Console.WriteLine("[ERROR] ❌ Cannot connect to database - connection test failed");
+            
+            // Try to get more specific error information
+            try
+            {
+                Console.WriteLine("[DEBUG] Attempting direct connection for detailed error info...");
+                await context.Database.OpenConnectionAsync(cts.Token);
+                Console.WriteLine("[DEBUG] Direct connection opened successfully (this shouldn't happen if CanConnect failed)");
+                context.Database.CloseConnection();
+            }
+            catch (Exception directEx)
+            {
+                Console.WriteLine($"[ERROR] ❌ Direct connection failed: {directEx.Message}");
+                Console.WriteLine($"[ERROR] Direct connection exception type: {directEx.GetType().Name}");
+                
+                // Log specific PostgreSQL errors
+                if (directEx.Message.Contains("timeout"))
+                {
+                    Console.WriteLine("[ERROR] 🕒 Connection timeout - database may be sleeping or overloaded");
+                }
+                else if (directEx.Message.Contains("authentication") || directEx.Message.Contains("password"))
+                {
+                    Console.WriteLine("[ERROR] 🔐 Authentication failed - credentials may be incorrect or expired");
+                }
+                else if (directEx.Message.Contains("does not exist"))
+                {
+                    Console.WriteLine("[ERROR] 🗃️ Database does not exist - check database name");
+                }
+                else if (directEx.Message.Contains("connection refused") || directEx.Message.Contains("host"))
+                {
+                    Console.WriteLine("[ERROR] 🌐 Network connection refused - check host and port");
+                }
+                else if (directEx.Message.Contains("SSL") || directEx.Message.Contains("ssl"))
+                {
+                    Console.WriteLine("[ERROR] 🔒 SSL connection issue - check SSL mode requirements");
+                }
+                
+                if (directEx.InnerException != null)
+                {
+                    Console.WriteLine($"[ERROR] Direct connection inner exception: {directEx.InnerException.Message}");
+                }
+                
+                // Log the full stack trace for network issues
+                Console.WriteLine($"[ERROR] Full stack trace: {directEx.StackTrace}");
+            }
+            
+            // Additional network diagnostics
+            Console.WriteLine("[DEBUG] Network diagnostic information:");
+            Console.WriteLine($"[DEBUG] Current time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            Console.WriteLine($"[DEBUG] Environment: {app.Environment.EnvironmentName}");
+            
+            try
+            {
+                var hostName = System.Net.Dns.GetHostName();
+                Console.WriteLine($"[DEBUG] Container hostname: {hostName}");
+            }
+            catch (Exception dnsEx)
+            {
+                Console.WriteLine($"[DEBUG] Could not resolve container hostname: {dnsEx.Message}");
+            }
         }
+    }
+    catch (OperationCanceledException)
+    {
+        Console.WriteLine("[ERROR] ❌ Database connection attempt timed out after 30 seconds");
     }
     catch (Exception ex)
     {
@@ -240,6 +354,7 @@ using (var scope = app.Services.CreateScope())
         if (ex.InnerException != null)
         {
             Console.WriteLine($"[ERROR] Inner exception: {ex.InnerException.Message}");
+            Console.WriteLine($"[ERROR] Inner exception type: {ex.InnerException.GetType().Name}");
         }
         
         // Don't throw - let the app start but log the error clearly
