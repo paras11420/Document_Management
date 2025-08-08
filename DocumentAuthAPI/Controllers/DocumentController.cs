@@ -52,7 +52,7 @@ namespace Backend.Controllers
                 Title = title,
                 FileName = file.FileName,
                 FilePath = filePath,
-                UploadedAt = DateTime.Now,
+                UploadedAt = DateTime.UtcNow,
                 DepartmentId = departmentId
             };
 
