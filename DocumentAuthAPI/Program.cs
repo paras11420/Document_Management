@@ -142,7 +142,7 @@ builder.Services.AddCors(options =>
             "http://localhost:3000",
             "http://localhost:5173",
             "http://localhost:5174",
-            "https://your-frontend-app.vercel.app"  // Replace with your actual Vercel URL when deployed
+            "https://document-management-system-two.vercel.app/"  // Replace with your actual Vercel URL when deployed
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
