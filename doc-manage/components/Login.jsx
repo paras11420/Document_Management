@@ -1,20 +1,35 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  LogIn,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  FileText,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
+
     const API_BASE_URL =
       import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
     if (!username || !password) {
       setError("All fields are required");
+      setIsLoading(false);
       return;
     }
 
@@ -38,51 +53,156 @@ function Login() {
     } catch (err) {
       console.error("Login error:", err);
       setError("Server error. Please try again later.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white shadow-lg rounded p-8 w-96"
-      >
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+      <div className="w-full max-w-md">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="bg-white rounded-full p-4 shadow-lg inline-flex mb-4">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded-full">
+              <FileText className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-gray-600">
+            Sign in to your Document Management System
+          </p>
+        </div>
 
-        <input
-          type="text"
-          placeholder="Username"
-          className="mb-4 w-full px-4 py-2 border border-gray-300 rounded"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+        {/* Login Form */}
+        <div className="bg-white shadow-2xl rounded-2xl p-8">
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center">
+              <LogIn className="h-6 w-6 mr-2 text-blue-600" />
+              Sign In
+            </h2>
+          </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="mb-4 w-full px-4 py-2 border border-gray-300 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <form onSubmit={handleLogin} className="space-y-6">
+            {/* Username Input */}
+            <div className="space-y-2">
+              <label className="flex items-center text-sm font-medium text-gray-700">
+                <User className="h-4 w-4 mr-2" />
+                Username
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLoading}
+                />
+                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              </div>
+            </div>
 
-        {error && (
-          <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
-        )}
+            {/* Password Input */}
+            <div className="space-y-2">
+              <label className="flex items-center text-sm font-medium text-gray-700">
+                <Lock className="h-4 w-4 mr-2" />
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isLoading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
-        >
-          Login
-        </button>
+            {/* Error Message */}
+            {error && (
+              <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
 
-        <p
-          onClick={() => navigate("/signup")}
-          className="text-blue-600 text-sm mt-4 text-center cursor-pointer hover:underline"
-        >
-          New user? Sign up
-        </p>
-      </form>
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full flex items-center justify-center py-3 px-4 rounded-xl text-white font-semibold transition-all duration-200 transform ${
+                isLoading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.02] shadow-lg hover:shadow-xl"
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                <>
+                  <LogIn className="h-5 w-5 mr-2" />
+                  Sign In
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="my-8 flex items-center">
+            <div className="flex-1 border-t border-gray-200"></div>
+            <span className="px-4 text-sm text-gray-500">or</span>
+            <div className="flex-1 border-t border-gray-200"></div>
+          </div>
+
+          {/* Sign Up Link */}
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">Don't have an account?</p>
+            <button
+              onClick={() => navigate("/signup")}
+              disabled={isLoading}
+              className="inline-flex items-center px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50"
+            >
+              Create New Account
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-8">
+          <p className="text-sm text-gray-500">
+            Secure access to your document management platform
+          </p>
+          <div className="flex items-center justify-center mt-2">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            </div>
+            <span className="text-sm text-green-600 ml-2">System Online</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

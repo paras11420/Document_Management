@@ -1,5 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  UserPlus,
+  User,
+  Mail,
+  Lock,
+  Phone,
+  MapPin,
+  CreditCard,
+  FileText,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+  CheckCircle,
+  ArrowLeft,
+} from "lucide-react";
 
 function Signup() {
   const [form, setForm] = useState({
@@ -14,8 +30,12 @@ function Signup() {
   });
   const [errors, setErrors] = useState({});
   const [serverMsg, setServerMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
 
+  // Validation function
   const validate = () => {
     const newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,20 +49,26 @@ function Signup() {
       newErrors.email = "Valid email required";
     if (!form.username) newErrors.username = "Username is required";
     if (!form.password || form.password.length < 6)
-      newErrors.password = "Min 6 characters";
-    if (!form.mobile || form.mobile.length !== 10)
-      newErrors.mobile = "10-digit mobile number";
-    if (!form.gst || !gstRegex.test(form.gst)) newErrors.gst = "Invalid GST No";
-    if (!form.pan || !panRegex.test(form.pan)) newErrors.pan = "Invalid PAN No";
+      newErrors.password = "Minimum 6 characters required";
+    if (!form.mobile || !/^[6-9]\d{9}$/.test(form.mobile))
+      newErrors.mobile = "Valid 10-digit mobile number required";
+    if (!form.gst || !gstRegex.test(form.gst))
+      newErrors.gst = "Invalid GST Number";
+    if (!form.pan || !panRegex.test(form.pan))
+      newErrors.pan = "Invalid PAN Number";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle submit
   const handleSignup = async (e) => {
     e.preventDefault();
+    setServerMsg("");
+
     if (!validate()) return;
 
+    setLoading(true);
     try {
       const response = await fetch(
         "https://document-auth-api.onrender.com/api/auth/signup",
@@ -56,61 +82,362 @@ function Signup() {
       const data = await response.json();
 
       if (response.ok) {
-        alert("Signup successful!");
-        navigate("/");
+        setServerMsg("Account created successfully! Redirecting to login...");
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
       } else {
-        setServerMsg(data.message || "Signup failed");
+        setServerMsg(data.message || "Signup failed. Please try again.");
       }
     } catch (err) {
       setServerMsg("Server error. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Update form fields
   const updateForm = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    // Clear error for this field when user starts typing
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: "" });
+    }
+  };
+
+  // Field configurations with icons and enhanced labels
+  const fieldConfigs = {
+    name: {
+      label: "Full Name",
+      icon: User,
+      placeholder: "Enter your full name",
+      type: "text",
+    },
+    address: {
+      label: "Address",
+      icon: MapPin,
+      placeholder: "Enter your complete address",
+      type: "text",
+    },
+    email: {
+      label: "Email Address",
+      icon: Mail,
+      placeholder: "Enter your email address",
+      type: "email",
+    },
+    username: {
+      label: "Username",
+      icon: User,
+      placeholder: "Choose a unique username",
+      type: "text",
+    },
+    password: {
+      label: "Password",
+      icon: Lock,
+      placeholder: "Create a strong password (min 6 characters)",
+      type: "password",
+    },
+    mobile: {
+      label: "Mobile Number",
+      icon: Phone,
+      placeholder: "Enter 10-digit mobile number",
+      type: "tel",
+    },
+    gst: {
+      label: "GST Number",
+      icon: CreditCard,
+      placeholder: "Enter valid GST number",
+      type: "text",
+    },
+    pan: {
+      label: "PAN Number",
+      icon: FileText,
+      placeholder: "Enter valid PAN number",
+      type: "text",
+    },
+  };
+
+  // Group fields by steps for better UX
+  const step1Fields = ["name", "email", "username", "password"];
+  const step2Fields = ["mobile", "address", "gst", "pan"];
+
+  const renderField = (fieldName) => {
+    const config = fieldConfigs[fieldName];
+    const IconComponent = config.icon;
+
+    return (
+      <div key={fieldName} className="space-y-2">
+        <label className="flex items-center text-sm font-medium text-gray-700">
+          <IconComponent className="h-4 w-4 mr-2" />
+          {config.label}
+        </label>
+        <div className="relative">
+          <input
+            name={fieldName}
+            type={
+              fieldName === "password"
+                ? showPassword
+                  ? "text"
+                  : "password"
+                : config.type
+            }
+            placeholder={config.placeholder}
+            className={`w-full pl-12 pr-4 py-3 border rounded-xl transition-all duration-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors[fieldName]
+                ? "border-red-500 bg-red-50"
+                : "border-gray-300 hover:border-gray-400"
+            }`}
+            value={form[fieldName]}
+            onChange={updateForm}
+            disabled={loading}
+            required
+            aria-invalid={errors[fieldName] ? "true" : "false"}
+          />
+          <IconComponent
+            className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 ${
+              errors[fieldName] ? "text-red-400" : "text-gray-400"
+            }`}
+          />
+
+          {/* Password visibility toggle */}
+          {fieldName === "password" && (
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              disabled={loading}
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          )}
+        </div>
+
+        {errors[fieldName] && (
+          <div className="flex items-center space-x-1">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            <p className="text-red-500 text-sm">{errors[fieldName]}</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form
-        onSubmit={handleSignup}
-        className="bg-white shadow-lg rounded p-8 w-[500px]"
-      >
-        <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
-        {[
-          "name",
-          "address",
-          "email",
-          "username",
-          "password",
-          "mobile",
-          "gst",
-          "pan",
-        ].map((field) => (
-          <div key={field} className="mb-3">
-            <input
-              name={field}
-              type={field === "password" ? "password" : "text"}
-              placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-              className="w-full px-4 py-2 border rounded"
-              onChange={updateForm}
-              required
-            />
-            {errors[field] && (
-              <p className="text-red-500 text-sm">{errors[field]}</p>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-full max-w-2xl">
+          {/* Header Section */}
+          <div className="text-center mb-8">
+            <div className="bg-white rounded-full p-4 shadow-lg inline-flex mb-4">
+              <div className="bg-gradient-to-r from-green-600 to-blue-600 p-3 rounded-full">
+                <UserPlus className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Create Your Account
+            </h1>
+            <p className="text-gray-600">Join our Document Management System</p>
           </div>
-        ))}
-        {serverMsg && (
-          <p className="text-red-500 text-sm text-center mb-3">{serverMsg}</p>
-        )}
-        <button
-          type="submit"
-          className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
-        >
-          Sign up
-        </button>
-      </form>
+
+          {/* Progress Indicator */}
+          <div className="bg-white rounded-xl p-4 mb-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div
+                className={`flex items-center ${
+                  currentStep >= 1 ? "text-blue-600" : "text-gray-400"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    currentStep >= 1
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-400"
+                  }`}
+                >
+                  {currentStep > 1 ? <CheckCircle className="h-5 w-5" /> : "1"}
+                </div>
+                <span className="ml-2 text-sm font-medium">Personal Info</span>
+              </div>
+              <div
+                className={`flex-1 h-1 mx-4 rounded-full ${
+                  currentStep > 1 ? "bg-blue-600" : "bg-gray-200"
+                }`}
+              ></div>
+              <div
+                className={`flex items-center ${
+                  currentStep >= 2 ? "text-blue-600" : "text-gray-400"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    currentStep >= 2
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-400"
+                  }`}
+                >
+                  2
+                </div>
+                <span className="ml-2 text-sm font-medium">
+                  Business Details
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Signup Form */}
+          <div className="bg-white shadow-2xl rounded-2xl p-8">
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center">
+                <UserPlus className="h-6 w-6 mr-2 text-green-600" />
+                {currentStep === 1
+                  ? "Personal Information"
+                  : "Business Information"}
+              </h2>
+              <p className="text-gray-600 mt-2">
+                {currentStep === 1
+                  ? "Please provide your basic information"
+                  : "Enter your business and contact details"}
+              </p>
+            </div>
+
+            <form onSubmit={handleSignup} className="space-y-6">
+              {/* Step 1: Personal Info */}
+              {currentStep === 1 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {step1Fields.map(renderField)}
+                </div>
+              )}
+
+              {/* Step 2: Business Info */}
+              {currentStep === 2 && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {step2Fields.slice(0, 2).map(renderField)}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {step2Fields.slice(2).map(renderField)}
+                  </div>
+                </div>
+              )}
+
+              {/* Server Message */}
+              {serverMsg && (
+                <div
+                  className={`flex items-center space-x-2 p-4 rounded-xl ${
+                    serverMsg.includes("successfully")
+                      ? "bg-green-50 border border-green-200"
+                      : "bg-red-50 border border-red-200"
+                  }`}
+                >
+                  {serverMsg.includes("successfully") ? (
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                  )}
+                  <p
+                    className={`text-sm ${
+                      serverMsg.includes("successfully")
+                        ? "text-green-700"
+                        : "text-red-700"
+                    }`}
+                  >
+                    {serverMsg}
+                  </p>
+                </div>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex space-x-4">
+                {currentStep === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    disabled={loading}
+                    className="flex-1 flex items-center justify-center py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Previous
+                  </button>
+                )}
+
+                {currentStep === 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="w-full flex items-center justify-center py-3 px-4 rounded-xl text-white font-semibold transition-all duration-200 transform bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                  >
+                    Next Step
+                    <ArrowLeft className="h-5 w-5 ml-2 rotate-180" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl text-white font-semibold transition-all duration-200 transform ${
+                      loading
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                    }`}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-5 w-5 mr-2" />
+                        Create Account
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* Divider */}
+            <div className="my-8 flex items-center">
+              <div className="flex-1 border-t border-gray-200"></div>
+              <span className="px-4 text-sm text-gray-500">or</span>
+              <div className="flex-1 border-t border-gray-200"></div>
+            </div>
+
+            {/* Login Link */}
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">Already have an account?</p>
+              <button
+                onClick={() => navigate("/")}
+                disabled={loading}
+                className="inline-flex items-center px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50"
+              >
+                Sign In Instead
+              </button>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-8">
+            <p className="text-sm text-gray-500">
+              By creating an account, you agree to our Terms of Service and
+              Privacy Policy
+            </p>
+            <div className="flex items-center justify-center mt-2">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              </div>
+              <span className="text-sm text-green-600 ml-2">
+                Secure Registration
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
