@@ -134,15 +134,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // CORS Policy - Updated to allow your frontend origins
+// CORS Policy - CORRECTED
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
             "http://localhost:3000",
-            "http://localhost:5173",
+            "http://localhost:5173", 
             "http://localhost:5174",
-            "https://document-management-system-two.vercel.app/"  // Replace with your actual Vercel URL when deployed
+            "https://document-management-system-two.vercel.app"  // Removed trailing slash
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -155,21 +156,23 @@ var app = builder.Build();
 // Use CORS middleware before authentication
 app.UseCors("AllowFrontend");
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+// Handle preflight OPTIONS requests
+app.Use(async (context, next) =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-else
-{
-    app.UseHsts();
-}
+    if (context.Request.Method == "OPTIONS")
+    {
+        context.Response.StatusCode = 200;
+        await context.Response.CompleteAsync();
+        return;
+    }
+    await next();
+});
 
-// Auth middleware
+// Continue with existing middleware
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
 
 // Health endpoint
 app.MapGet("/health", () => Results.Ok(new
