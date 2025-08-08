@@ -35,54 +35,132 @@ function Signup() {
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
 
-  // Validation function
-  const validate = () => {
+  // Use EXACT same pattern as login component
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+  // Step-aware validation function
+  const validateStep = (fieldsToValidate) => {
     const newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
     const gstRegex =
       /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
 
-    if (!form.name) newErrors.name = "Name is required";
-    if (!form.address) newErrors.address = "Address is required";
-    if (!form.email || !emailRegex.test(form.email))
-      newErrors.email = "Valid email required";
-    if (!form.username) newErrors.username = "Username is required";
-    if (!form.password || form.password.length < 6)
-      newErrors.password = "Minimum 6 characters required";
-    if (!form.mobile || !/^[6-9]\d{9}$/.test(form.mobile))
-      newErrors.mobile = "Valid 10-digit mobile number required";
-    if (!form.gst || !gstRegex.test(form.gst))
-      newErrors.gst = "Invalid GST Number";
-    if (!form.pan || !panRegex.test(form.pan))
-      newErrors.pan = "Invalid PAN Number";
+    // Only validate the fields passed as parameter
+    fieldsToValidate.forEach((fieldName) => {
+      switch (fieldName) {
+        case "name":
+          if (!form.name.trim()) newErrors.name = "Name is required";
+          break;
+        case "address":
+          if (!form.address.trim()) newErrors.address = "Address is required";
+          break;
+        case "email":
+          if (!form.email || !emailRegex.test(form.email))
+            newErrors.email = "Valid email required";
+          break;
+        case "username":
+          if (!form.username.trim())
+            newErrors.username = "Username is required";
+          break;
+        case "password":
+          if (!form.password || form.password.length < 6)
+            newErrors.password = "Minimum 6 characters required";
+          break;
+        case "mobile":
+          if (!form.mobile || !/^[6-9]\d{9}$/.test(form.mobile))
+            newErrors.mobile = "Valid 10-digit mobile number required";
+          break;
+        case "gst":
+          if (!form.gst || !gstRegex.test(form.gst.toUpperCase()))
+            newErrors.gst = "Invalid GST Number";
+          break;
+        case "pan":
+          if (!form.pan || !panRegex.test(form.pan.toUpperCase()))
+            newErrors.pan = "Invalid PAN Number";
+          break;
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle submit
+  // Handle next step - validate only step 1 fields
+  const handleNextStep = () => {
+    console.log("🔍 Validating Step 1 fields:", step1Fields);
+
+    if (validateStep(step1Fields)) {
+      console.log("✅ Step 1 validation passed, moving to step 2");
+      setCurrentStep(2);
+    } else {
+      console.log("❌ Step 1 validation failed");
+    }
+  };
+
+  // Handle signup - validate only step 2 fields
   const handleSignup = async (e) => {
     e.preventDefault();
     setServerMsg("");
 
-    if (!validate()) return;
+    console.log("🔍 Validating Step 2 fields:", step2Fields);
+
+    // Only validate step 2 fields
+    if (!validateStep(step2Fields)) {
+      console.log("❌ Step 2 validation failed");
+      return;
+    }
+
+    console.log("✅ Step 2 validation passed, proceeding with signup");
 
     setLoading(true);
+
+    // Test with the EXACT same data structure that worked in curl
+    const signupData = {
+      name: form.name.trim(),
+      address: form.address.trim(),
+      email: form.email.trim().toLowerCase(),
+      username: form.username.trim(),
+      password: form.password,
+      mobile: form.mobile.trim(),
+      gst: form.gst.trim().toUpperCase(),
+      pan: form.pan.trim().toUpperCase(),
+    };
+
+    // Debug logging
+    console.log("🚀 Signup data to send:", signupData);
+    console.log("🔗 API URL:", `${API_BASE_URL}/api/auth/signup`);
+
     try {
-      const response = await fetch(
-        "https://document-auth-api.onrender.com/api/auth/signup",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        }
-      );
+      // Use EXACT same fetch as login (simplified)
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(signupData),
+      });
+
+      console.log("📊 Response status:", response.status);
 
       const data = await response.json();
+      console.log("📦 Response data:", data);
 
       if (response.ok) {
         setServerMsg("Account created successfully! Redirecting to login...");
+        // Clear form
+        setForm({
+          name: "",
+          address: "",
+          email: "",
+          username: "",
+          password: "",
+          mobile: "",
+          gst: "",
+          pan: "",
+        });
+        setCurrentStep(1);
         setTimeout(() => {
           navigate("/");
         }, 2000);
@@ -90,18 +168,28 @@ function Signup() {
         setServerMsg(data.message || "Signup failed. Please try again.");
       }
     } catch (err) {
+      console.error("❌ Signup error:", err);
       setServerMsg("Server error. Please try again later.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Update form fields
+  // Update form fields with validation
   const updateForm = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Special handling for specific fields
+    let processedValue = value;
+    if (name === "gst" || name === "pan") {
+      processedValue = value.toUpperCase();
+    }
+
+    setForm((prev) => ({ ...prev, [name]: processedValue }));
+
     // Clear error for this field when user starts typing
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: "" });
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -146,13 +234,13 @@ function Signup() {
     gst: {
       label: "GST Number",
       icon: CreditCard,
-      placeholder: "Enter valid GST number",
+      placeholder: "Enter valid GST number (auto-uppercase)",
       type: "text",
     },
     pan: {
       label: "PAN Number",
       icon: FileText,
-      placeholder: "Enter valid PAN number",
+      placeholder: "Enter valid PAN number (auto-uppercase)",
       type: "text",
     },
   };
@@ -192,6 +280,7 @@ function Signup() {
             disabled={loading}
             required
             aria-invalid={errors[fieldName] ? "true" : "false"}
+            autoComplete={fieldName === "password" ? "new-password" : fieldName}
           />
           <IconComponent
             className={`absolute left-3 lg:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 ${
@@ -206,6 +295,7 @@ function Signup() {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 lg:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
               disabled={loading}
+              tabIndex={-1}
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -233,7 +323,8 @@ function Signup() {
       {/* Mobile Back Button */}
       <button
         onClick={() => navigate("/")}
-        className="sm:hidden absolute top-4 left-4 p-2 text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-lg transition-colors"
+        className="sm:hidden absolute top-4 left-4 p-2 text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-lg transition-colors z-10"
+        aria-label="Go back to login"
       >
         <ArrowLeft className="h-6 w-6" />
       </button>
@@ -356,6 +447,7 @@ function Signup() {
                       ? "bg-green-50 border border-green-200"
                       : "bg-red-50 border border-red-200"
                   }`}
+                  role="alert"
                 >
                   {serverMsg.includes("successfully") ? (
                     <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -391,8 +483,9 @@ function Signup() {
                 {currentStep === 1 ? (
                   <button
                     type="button"
-                    onClick={() => setCurrentStep(2)}
-                    className="w-full flex items-center justify-center py-2.5 lg:py-3 px-4 rounded-xl text-white font-semibold transition-all duration-200 transform bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.02] shadow-lg hover:shadow-xl text-sm lg:text-base"
+                    onClick={handleNextStep} // ✅ Changed to use handleNextStep
+                    disabled={loading}
+                    className="w-full flex items-center justify-center py-2.5 lg:py-3 px-4 rounded-xl text-white font-semibold transition-all duration-200 transform bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.02] shadow-lg hover:shadow-xl text-sm lg:text-base disabled:opacity-50"
                   >
                     Next Step
                     <ArrowLeft className="h-4 w-4 lg:h-5 lg:w-5 ml-2 rotate-180" />
